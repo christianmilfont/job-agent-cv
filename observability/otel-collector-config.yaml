@@ -1,0 +1,43 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 2s
+
+connectors:
+  # Converte spans em métricas de duração/contagem (alimenta o dashboard do Grafana).
+  spanmetrics:
+    namespace: jobagent
+    histogram:
+      unit: s
+      explicit:
+        # Gerar um currículo com IA local leva minutos, então os buckets vão até 10 min.
+        buckets: [100ms, 500ms, 1s, 2s, 5s, 15s, 30s, 60s, 120s, 180s, 300s, 480s, 600s]
+    dimensions:
+      - name: llm.model
+      - name: pipeline.mode
+    metrics_flush_interval: 10s
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, spanmetrics]
+    metrics:
+      receivers: [spanmetrics]
+      exporters: [prometheus]

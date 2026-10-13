@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app import database
+from app import telemetry
 from app.routers import applications, profile
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,6 +56,8 @@ async def _validation_handler(_: Request, exc: RequestValidationError) -> JSONRe
         msgs.append(f"{loc}: {msg}" if loc and "descrição" not in msg else msg)
     return JSONResponse(status_code=422, content={"detail": " ".join(msgs) or "Dados inválidos."})
 
+
+telemetry.setup(app)
 
 app.include_router(profile.router)
 app.include_router(applications.router)

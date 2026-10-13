@@ -11,6 +11,7 @@ from typing import Iterator, Optional
 
 from app.models.schemas import Analysis, Application, ApplicationSummary, Profile, ResumeContent
 from app.seed import initial_profile
+from app.telemetry import tracer
 
 DEFAULT_DB = Path(__file__).resolve().parent.parent / "data" / "jobagent.db"
 
@@ -107,7 +108,7 @@ def create_application(
     company: str, role: str, job_description: str, analysis: Analysis, resume: ResumeContent
 ) -> Application:
     now = _now()
-    with connect() as c:
+    with tracer.start_as_current_span("db.create_application"), connect() as c:
         cur = c.execute(
             "INSERT INTO applications (company, role, job_description, created_at, updated_at, score, "
             "analysis, resume_generated, resume) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",

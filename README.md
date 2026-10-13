@@ -86,6 +86,33 @@ Competências, projetos, formação, certificações e o restante do currículo 
 - O resumo vem de um modelo de texto; é correto e honesto, mas menos "natural" que o gerado por IA.
 - **Score:** tecnologias obrigatórias (40) + desejáveis (10) + formação/certificações (15) + projetos (15) + experiência (20), normalizado para 0–100. Conhecimento *relacionado* (ex.: Grafana para Prometheus) dá crédito parcial e é sinalizado em GAPS. Lacuna = "não encontrado no perfil", não "não sabe". O score é uma estimativa e **não garante aprovação em ATS**.
 
+## Observabilidade (OpenTelemetry + Jaeger + Grafana)
+
+Mede onde o tempo da geração é gasto (útil com IA local lenta). Fluxo:
+`backend (SDK OpenTelemetry) → OTel Collector → Jaeger (traces)` e, no Collector, o conector `spanmetrics` gera métricas → `Prometheus → Grafana`.
+
+1. Suba a stack (precisa do Docker Desktop em execução):
+   ```bash
+   docker compose -f observability/docker-compose.yml up -d
+   ```
+2. No `.env`, ative o envio e reinicie o backend:
+   ```ini
+   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+   ```
+3. Gere currículos normalmente e abra:
+   - **Grafana (dashboard "Job Agent CV — Geração de currículos"):** http://localhost:3000 (sem login, somente leitura; admin/admin para editar)
+   - **Jaeger (árvore de spans de cada geração):** http://localhost:16686, serviço `jobagent-cv-backend`
+   - Prometheus: http://localhost:9090
+
+O dashboard mostra: número de gerações, tempo médio e P95, chamadas e falhas da IA (fallbacks), tempo médio por etapa (`llm.enhance_parse`, `llm.generate_resume_text`, `job.match`, `export.pdf`…), duração da chamada à IA **por modelo** (para comparar, por exemplo, `llama3.1` e `llama3.2:3b`), latência ao longo do tempo e a lista de traces recentes.
+
+Detalhes:
+- Sem `OTEL_EXPORTER_OTLP_ENDPOINT` a telemetria fica desligada e o custo é desprezível.
+- Spans guardam só metadados (tamanhos, contagens, modo, modelo, score, páginas). **Nunca** o texto da vaga, dados do perfil ou respostas da IA.
+- Traces e métricas persistem em volumes Docker. `docker compose -f observability/docker-compose.yml down -v` apaga tudo.
+- As portas ficam acessíveis só em `127.0.0.1`.
+- Ao encerrar o backend, os últimos segundos de spans (envio em lote a cada ~5 s) podem se perder se o processo for morto à força.
+
 ## Testes
 
 ```bash

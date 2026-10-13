@@ -19,6 +19,9 @@ import httpx
 
 from app.models.schemas import AppStatus, ParsedJob, Profile
 from app.services.catalog import CATALOG, canonical, find_terms
+from opentelemetry import trace
+
+from app.telemetry import tracer
 
 log = logging.getLogger("jobagent.llm")  # nunca registrar chaves ou texto de perfil/vaga
 
@@ -72,6 +75,16 @@ def complete_json(system: str, user: str, cfg: LLMConfig | None = None) -> dict:
     cfg = cfg or load_config()
     if not cfg.enabled:
         raise LLMError("IA não configurada.")
+    # Só metadados no span: nunca o conteúdo do prompt ou da resposta.
+    with tracer.start_as_current_span("llm.request") as span:
+        span.set_attribute("llm.provider", cfg.provider)
+        span.set_attribute("llm.model", cfg.model)
+        span.set_attribute("llm.prompt_chars", len(system) + len(user))
+        span.set_attribute("llm.timeout_s", cfg.timeout)
+        return _complete_json(system, user, cfg)
+
+
+def _complete_json(system: str, user: str, cfg: LLMConfig) -> dict:
     try:
         if cfg.provider == "anthropic":
             r = httpx.post(
@@ -95,6 +108,7 @@ def complete_json(system: str, user: str, cfg: LLMConfig | None = None) -> dict:
             text = r.json()["choices"][0]["message"]["content"]
     except (httpx.HTTPError, KeyError, ValueError) as exc:
         raise LLMError(f"Falha ao chamar o provedor de IA ({type(exc).__name__}).") from exc
+    trace.get_current_span().set_attribute("llm.response_chars", len(text))
     return _extract_json(text)
 
 

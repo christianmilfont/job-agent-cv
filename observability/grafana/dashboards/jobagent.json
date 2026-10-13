@@ -1,0 +1,587 @@
+{
+ "uid": "jobagent-cv",
+ "title": "Job Agent CV — Geração de currículos",
+ "tags": [
+  "jobagent"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "30s",
+ "time": {
+  "from": "now-24h",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "stat",
+   "title": "Gerações de currículo",
+   "description": "Requisições POST /api/applications no período.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "clamp_min(sum (jobagent_calls_total{span_name=\"POST /api/applications\"}) - (sum (jobagent_calls_total{span_name=\"POST /api/applications\"} offset $__range) or sum (jobagent_calls_total{span_name=\"POST /api/applications\"}) * 0), 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "noValue": "0",
+     "decimals": 0
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  },
+  {
+   "id": 2,
+   "type": "stat",
+   "title": "Tempo médio de geração",
+   "description": "Tempo total de resposta da geração (análise + currículo + gravação).",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "clamp_min(sum (jobagent_duration_seconds_sum{span_name=\"POST /api/applications\"}) - (sum (jobagent_duration_seconds_sum{span_name=\"POST /api/applications\"} offset $__range) or sum (jobagent_duration_seconds_sum{span_name=\"POST /api/applications\"}) * 0), 0) / clamp_min(sum (jobagent_duration_seconds_count{span_name=\"POST /api/applications\"}) - (sum (jobagent_duration_seconds_count{span_name=\"POST /api/applications\"} offset $__range) or sum (jobagent_duration_seconds_count{span_name=\"POST /api/applications\"}) * 0), 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "noValue": "sem dados",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 120
+       },
+       {
+        "color": "red",
+        "value": 300
+       }
+      ]
+     },
+     "decimals": 1
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "P95 de geração",
+   "description": "95% das gerações levam até este tempo (estimado pelos buckets do histograma).",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "histogram_quantile(0.95, clamp_min(sum by (le) (jobagent_duration_seconds_bucket{span_name=\"POST /api/applications\"}) - (sum by (le) (jobagent_duration_seconds_bucket{span_name=\"POST /api/applications\"} offset $__range) or sum by (le) (jobagent_duration_seconds_bucket{span_name=\"POST /api/applications\"}) * 0), 0))",
+     "legendFormat": "",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "noValue": "sem dados",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 180
+       },
+       {
+        "color": "red",
+        "value": 480
+       }
+      ]
+     },
+     "decimals": 0
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "Chamadas à IA",
+   "description": "Chamadas ao provedor de IA (Ollama etc.).",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "clamp_min(sum (jobagent_calls_total{span_name=\"llm.request\"}) - (sum (jobagent_calls_total{span_name=\"llm.request\"} offset $__range) or sum (jobagent_calls_total{span_name=\"llm.request\"}) * 0), 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "noValue": "0",
+     "decimals": 0
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "Falhas da IA (fallback)",
+   "description": "Chamadas à IA que falharam (timeout, JSON inválido, texto rejeitado); o sistema voltou ao modo por regras.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "clamp_min(sum (jobagent_calls_total{span_name=\"llm.request\",status_code=\"STATUS_CODE_ERROR\"}) - (sum (jobagent_calls_total{span_name=\"llm.request\",status_code=\"STATUS_CODE_ERROR\"} offset $__range) or sum (jobagent_calls_total{span_name=\"llm.request\",status_code=\"STATUS_CODE_ERROR\"}) * 0), 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "noValue": "0",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "decimals": 0
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "Erros HTTP na geração",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 20,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "clamp_min(sum (jobagent_calls_total{span_name=\"POST /api/applications\",status_code=\"STATUS_CODE_ERROR\"}) - (sum (jobagent_calls_total{span_name=\"POST /api/applications\",status_code=\"STATUS_CODE_ERROR\"} offset $__range) or sum (jobagent_calls_total{span_name=\"POST /api/applications\",status_code=\"STATUS_CODE_ERROR\"}) * 0), 0)",
+     "legendFormat": "",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "noValue": "0",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "decimals": 0
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  },
+  {
+   "id": 7,
+   "type": "bargauge",
+   "title": "Onde o tempo é gasto (média por etapa)",
+   "description": "Média de duração de cada etapa do pipeline no período. Em modo IA, as etapas llm.* dominam.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 4,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "clamp_min(sum by (span_name) (jobagent_duration_seconds_sum{span_name=~\"llm.enhance_parse|llm.generate_resume_text|job.parse_rules|job.match|resume.generate_rules|export.pdf|export.docx|db.create_application\"}) - (sum by (span_name) (jobagent_duration_seconds_sum{span_name=~\"llm.enhance_parse|llm.generate_resume_text|job.parse_rules|job.match|resume.generate_rules|export.pdf|export.docx|db.create_application\"} offset $__range) or sum by (span_name) (jobagent_duration_seconds_sum{span_name=~\"llm.enhance_parse|llm.generate_resume_text|job.parse_rules|job.match|resume.generate_rules|export.pdf|export.docx|db.create_application\"}) * 0), 0) / clamp_min(sum by (span_name) (jobagent_duration_seconds_count{span_name=~\"llm.enhance_parse|llm.generate_resume_text|job.parse_rules|job.match|resume.generate_rules|export.pdf|export.docx|db.create_application\"}) - (sum by (span_name) (jobagent_duration_seconds_count{span_name=~\"llm.enhance_parse|llm.generate_resume_text|job.parse_rules|job.match|resume.generate_rules|export.pdf|export.docx|db.create_application\"} offset $__range) or sum by (span_name) (jobagent_duration_seconds_count{span_name=~\"llm.enhance_parse|llm.generate_resume_text|job.parse_rules|job.match|resume.generate_rules|export.pdf|export.docx|db.create_application\"}) * 0), 0)",
+     "legendFormat": "{{span_name}}",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "displayMode": "gradient",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "showUnfilled": true
+   }
+  },
+  {
+   "id": 8,
+   "type": "bargauge",
+   "title": "Duração média da chamada à IA por modelo",
+   "description": "Compare modelos (ex.: llama3.1 vs llama3.2:3b) mudando LLM_MODEL no .env.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 4,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "clamp_min(sum by (llm_model) (jobagent_duration_seconds_sum{span_name=\"llm.request\"}) - (sum by (llm_model) (jobagent_duration_seconds_sum{span_name=\"llm.request\"} offset $__range) or sum by (llm_model) (jobagent_duration_seconds_sum{span_name=\"llm.request\"}) * 0), 0) / clamp_min(sum by (llm_model) (jobagent_duration_seconds_count{span_name=\"llm.request\"}) - (sum by (llm_model) (jobagent_duration_seconds_count{span_name=\"llm.request\"} offset $__range) or sum by (llm_model) (jobagent_duration_seconds_count{span_name=\"llm.request\"}) * 0), 0)",
+     "legendFormat": "{{llm_model}}",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "orientation": "horizontal",
+    "displayMode": "gradient",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "showUnfilled": true
+   }
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "Latência da geração ao longo do tempo (p50 / p95)",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 13,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "histogram_quantile(0.5, sum by (le) (rate(jobagent_duration_seconds_bucket{span_name=\"POST /api/applications\"}[15m])))",
+     "legendFormat": "p50",
+     "refId": "A",
+     "instant": false,
+     "range": true
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(jobagent_duration_seconds_bucket{span_name=\"POST /api/applications\"}[15m])))",
+     "legendFormat": "p95",
+     "refId": "B",
+     "instant": false,
+     "range": true
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {}
+  },
+  {
+   "id": 10,
+   "type": "timeseries",
+   "title": "Duração média por etapa ao longo do tempo",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 13,
+    "w": 12,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (span_name) (rate(jobagent_duration_seconds_sum{span_name=~\"llm.enhance_parse|llm.generate_resume_text|job.parse_rules|job.match|resume.generate_rules|export.pdf|export.docx|db.create_application\"}[15m])) / sum by (span_name) (rate(jobagent_duration_seconds_count{span_name=~\"llm.enhance_parse|llm.generate_resume_text|job.parse_rules|job.match|resume.generate_rules|export.pdf|export.docx|db.create_application\"}[15m]))",
+     "legendFormat": "{{span_name}}",
+     "refId": "A",
+     "instant": false,
+     "range": true
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {}
+  },
+  {
+   "id": 11,
+   "type": "table",
+   "title": "Traces recentes de geração (Jaeger)",
+   "description": "Clique em um trace para ver a árvore de spans (análise, chamadas à IA, exportação).",
+   "datasource": {
+    "type": "jaeger",
+    "uid": "jaeger"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 21,
+    "w": 24,
+    "h": 9
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "jaeger",
+      "uid": "jaeger"
+     },
+     "queryType": "search",
+     "service": "jobagent-cv-backend",
+     "operation": "POST /api/applications",
+     "limit": 20,
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {}
+  },
+  {
+   "id": 12,
+   "type": "text",
+   "title": "Links",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 30,
+    "w": 24,
+    "h": 3
+   },
+   "targets": [],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "[Abrir Jaeger](http://localhost:16686/search?service=jobagent-cv-backend&operation=POST%20%2Fapi%2Fapplications) · [Prometheus](http://localhost:9090)  \nSpans guardam apenas tamanhos, contagens, modo e nome do modelo — nunca o texto da vaga, do perfil ou da resposta da IA."
+   }
+  }
+ ],
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": []
+ }
+}

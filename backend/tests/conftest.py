@@ -1,5 +1,7 @@
 import os
 
+os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = ""  # testes nunca exportam telemetria, mesmo com .env configurado
+
 import pytest
 
 JOB = """Analista DevOps Pleno - Acme Tecnologia

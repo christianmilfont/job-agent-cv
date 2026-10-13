@@ -19,6 +19,7 @@ from reportlab.lib.units import cm
 from reportlab.platypus import HRFlowable, ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer
 
 from app.models.schemas import ResumeContent
+from app.telemetry import tracer
 
 SECTION_TITLES = {
     "summary": "Resumo profissional", "skills": "Competências técnicas", "experience": "Experiência profissional",
@@ -142,12 +143,19 @@ def _build_pdf(r: ResumeContent, size: float) -> tuple[bytes, int]:
 
 def export_pdf(r: ResumeContent) -> bytes:
     """Tenta caber em uma página reduzindo a fonte até 9pt; senão usa duas páginas (ou mais, se o texto exigir)."""
-    result = b""
-    for size in (10.5, 10, 9.5, 9):
-        result, pages = _build_pdf(r, size)
-        if pages <= 1:
-            return result
-    return _build_pdf(r, 10)[0]
+    with tracer.start_as_current_span("export.pdf") as span:
+        result, pages, tries = b"", 0, 0
+        for size in (10.5, 10, 9.5, 9):
+            tries += 1
+            result, pages = _build_pdf(r, size)
+            if pages <= 1:
+                break
+        else:
+            result, pages = _build_pdf(r, 10)
+        span.set_attribute("export.font_size_tries", tries)
+        span.set_attribute("export.pages", pages)
+        span.set_attribute("export.bytes", len(result))
+        return result
 
 
 # ============================================================ DOCX
@@ -185,6 +193,13 @@ def _bottom_border(par) -> None:
 
 
 def export_docx(r: ResumeContent) -> bytes:
+    with tracer.start_as_current_span("export.docx") as span:
+        data = _export_docx(r)
+        span.set_attribute("export.bytes", len(data))
+        return data
+
+
+def _export_docx(r: ResumeContent) -> bytes:
     d = Document()
     sec = d.sections[0]
     sec.page_width, sec.page_height = Cm(21), Cm(29.7)
